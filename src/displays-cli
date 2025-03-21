@@ -453,7 +453,7 @@ function log-diff() {
 is-display-sleep() {
   local value
 
-  value=$(/usr/bin/pmset -g powerstate IODisplayWrangler | /usr/bin/tail -1 | /usr/bin/cut -c29)
+  value=$(/usr/bin/pmset -g powerstate IODisplayWrangler | /usr/bin/tail -1 | /usr/bin/grep -v "failure" | /usr/bin/cut -c29 | /usr/bin/grep -E '[0-9]')
   if [ -n "$value" ] && [ "$value" -lt "4" ]; then
     return 0
   else
