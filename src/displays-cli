@@ -87,7 +87,7 @@ function prefs-bundle-prefix() {
   prefix="$MDM_BUNDLE_PREFIX"
 
   if [ -z "$prefix" ]; then
-    hostname=$(/bin/hostname)
+    hostname=$(/bin/hostname -f)
     len="${hostname//[^\.]}"
     len=${#len}
     if [ "${len}" -ge "3" ]; then
