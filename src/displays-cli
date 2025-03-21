@@ -407,7 +407,7 @@ function log-entry() {
 # @arg $1 string Location Name
 # @stdout string Log lines for given location name
 function log-for-location() {
-  /bin/cat "$logFile" | /usr/bin/grep "\[$1\]"
+  /usr/bin/grep "\[$1\]" "$logFile"
 }
 
 # @description Parses the given log line and prints the date
@@ -598,7 +598,7 @@ function display-attribute-serial() {
 
 ## region ###################################### Main Function
 
-# @descrption Compiles JSON string containing an array of display objects
+# @description Compiles JSON string containing an array of display objects
 # @noargs
 # @stdout JSON string
 function get-json-data() {
@@ -771,11 +771,11 @@ elif $isJamfEa; then
         ea+=("Sleeping")
         location=$(location-from-ip)
         if [ -n "$location" ]; then
-          last=$(/bin/cat "$logFile" | /usr/bin/grep "\[$location\]" | /usr/bin/tail -1)
+          last=$(/usr/bin/grep "\[$location\]" "$logFile" | /usr/bin/tail -1)
           lastDiff=$(log-diff "$last")
           if [ "$lastDiff" -lt "$cacheDays" ]; then
             lastDate=$(log-line-date "$last")
-            last=$(/bin/cat "$logFile" | /usr/bin/grep "\[$location\]" | /usr/bin/grep "\[$lastDate\]")
+            last=$(/usr/bin/grep "\[$location\]" "$logFile" | /usr/bin/grep "\[$lastDate\]")
             for line in ${(f)last}; do
               ea+=("$(log-line-model "$line")")
             done
