@@ -651,7 +651,7 @@ function get-json-data() {
     mSerial=$(display-attribute-serial)
     if [ -n "$mModel" ] || [ -n "$mSerial" ]; then
       log-entry "$mModel" "$mSerial"
-      mJson=$(json_add "{}" model "$mModel" serial "$mSerial")
+      mJson=$(json-obj-add "{}" model "$mModel" serial "$mSerial")
       json=$(json-arr-add "$json" "$mJson")
     fi
   fi
