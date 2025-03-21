@@ -4,6 +4,7 @@
 # @description Shows and logs current displays on macOS systems.
 # @option --json Output JSON.
 # @option --ea Output Jamf Extension Attribute result.
+# @option --ca | --attr Output Attribute result, appropriate for some other MDM solutions.
 # @option --wake If display is sleeping, wake before polling, re-sleep afterward.
 # @option --location <location> Filter log results by the given location.
 # @option --schema Display a JSON Schema for the Applications & Custom Settings payload.
@@ -284,6 +285,7 @@ function output-usage() {
   echo ""
   echo "  --json            Show output As JSON String"
   echo "  --ea              Show output as Jamf Extension Attribute result."
+  echo "  --attr            Show output as an 'attribute' suitable for some other MDM solutions."
   echo "  --wake            If display is sleeping, wake before polling, then re-sleep display after polling."
   echo "  --schema          Display a JSON Schema for the Applications & Custom Settings payload."
   echo "  --version         Shows version & quits."
@@ -665,6 +667,7 @@ function get-json-data() {
 
 isJson=false
 isJamfEa=false
+isAttr=false
 isFirst=false
 isLast=false
 isSearch=false
@@ -690,6 +693,7 @@ else
         --wake )                    isWake=true;                              ;;
         --json)                     isJson=true                               ;;
         --ea )                      isJamfEa=true                             ;;
+        --attr | --ca )             isAttr=true                               ;;
         --schema )                  output-schema;                            exit; ;; # show schema and quit
         --help )                    output-usage;                             exit; ;; # show help and quit
         --version )                 output-version;                           exit; ;; # show version and quit
@@ -700,6 +704,7 @@ fi
 
 if ! prefs-set-jq-path; then
   $isJamfEa && echo "<result>Error</result>" && exit 0
+  $isAttr && echo "ERROR" && exit 0
   ! $isSearch && echo "ERROR: JQ does not seem to be installed." && exit 1
 fi
 
@@ -761,7 +766,7 @@ fi
 json=$(get-json-data)
 if $isJson; then
   $eJQ <<< "$json"
-elif $isJamfEa; then
+elif $isJamfEa || $isAttr; then
   count=$($eJQ -r '. | length' <<< "$json")
   if [ "$count" -gt "0" ]; then
     ea=()
@@ -788,7 +793,10 @@ elif $isJamfEa; then
   else
     ea=("None")
   fi
-  echo "<result>${(j[|])ea}</result>"
+
+  result="${(j[|])ea}"
+  $isJamfEa && echo "<result>$result</result>"
+  echo "$result"
 else
   count=$($eJQ '. | length' <<< "$json")
   if [ "$count" -eq "0" ]; then

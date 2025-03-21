@@ -43,13 +43,16 @@ matches are determined via the preferences, as configured by MDM or system/user 
 Using the `--model`, `--serial`, and `--location` flags, the log may be filtered and displayed.  The `--last`, `--first`,
 `--head` and `--tail` flags may be used to limit the results. By default, only the last 100 entries are shown.
 
-### Jamf Extension Attribute
+### MDM Attribute
 
-Using the `--ea` flag or used as a Jamf Pro Extension attribute, the output is the model of each display shown as a pipe
-separated string (surrounded with `<result></result>`). 
+Using the `--ea` or `--attr` flags (or run as a Jamf Pro Extension Attribute script) the output is the model of each
+display shown as a pipe separated string.
 
-To ensure accurate data in Jamf, if a display is sleeping, the result is based on logged values.  Only a value logged
-within the last 7 days with the same location is used.  The result will also add "Sleeping|" prior to the model(s). 
+To ensure accurate data, if a display is sleeping, the result is based on logged values.  Only a value logged
+within the last 7 days with the same location is used.  The result will also add "Sleeping|" prior to the model(s).
+
+When running as a Jamf Pro Extension Attribute script or using the `--ea` flag, output is enclosed in
+`<result></result>` as required.
 
 ## Configuration
 
