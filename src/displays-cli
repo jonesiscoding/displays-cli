@@ -87,7 +87,7 @@ function prefs-bundle-prefix() {
   prefix="$MDM_BUNDLE_PREFIX"
 
   if [ -z "$prefix" ]; then
-    hostname=$(hostname)
+    hostname=$(/bin/hostname)
     len="${hostname//[^\.]}"
     len=${#len}
     if [ "${len}" -ge "3" ]; then
@@ -329,7 +329,7 @@ function location-match() {
   lc=$($eJQ '.locations | length' <<< "$locations")
   for ((li=0; li <= (lc-1); li++)); do
     pattern=$($eJQ ".locations[$li].pattern" <<< "$locations")
-    if echo "$ip" | grep -E -q "$pattern"; then
+    if echo "$ip" | /usr/bin/grep -E -q "$pattern"; then
 
       $eJQ ".locations[$li].name" <<< "$locations" && return 0
     fi
@@ -674,7 +674,7 @@ serial=""
 location=""
 tail=100
 
-if echo "$parentCommand" | grep "jamf" && [ "$#" -eq 0 ]; then
+if echo "$parentCommand" | /usr/bin/grep "jamf" && [ "$#" -eq 0 ]; then
   isJamfEa=true
 else
   while [ "$1" != "" ]; do
@@ -705,20 +705,20 @@ fi
 
 if $isWake && is-display-sleep; then
   # Stay Awake for TTY
-  ttyskeepawake=$(pmset -g | grep ttyskeepawake | awk '{ print $2 }')
-  [ -z "$ttyskeepawake" ] && pmset -a ttyskeepawake 1
+  ttyskeepawake=$(/usr/bin/pmset -g | /usr/bin/grep ttyskeepawake | /usr/bin/awk '{ print $2 }')
+  [ -z "$ttyskeepawake" ] && /usr/bin/pmset -a ttyskeepawake 1
   # Stay Awake for 150 seconds
   /usr/bin/caffeinate -d -u -t 150 &
   caffePid=$!
   # Use a Wake Event
-  curS=$(date -j "+%s")
+  curS=$(/bin/date -j "+%s")
   wakS=$((curS+30))
-  wakD=$(date -j -f "%s" "$wakS" "+%m/%d/%g %H:%M:%S")
-  pmset schedule wake "$wakD"
+  wakD=$(/bin/date -j -f "%s" "$wakS" "+%m/%d/%g %H:%M:%S")
+  /usr/bin/pmset schedule wake "$wakD"
   # Wait for the Wake Event
-  sleep 45
+  /bin/sleep 45
   # Regather Info
-  spDisplaysDataType=$(system_profiler SPDisplaysDataType -json)
+  spDisplaysDataType=$(/usr/sbin/system_profiler SPDisplaysDataType -json)
 else
   isWake=false
 fi
@@ -728,27 +728,27 @@ fi
 ## region ###################################### Log Search Controller
 
 if $isSearch; then
-  result=$(cat "$logFile")
+  result=$(/bin/cat "$logFile")
   if [ -n "$model" ]; then
-    result=$(echo "$result" | grep "$model")
+    result=$(echo "$result" | /usr/bin/grep "$model")
   fi
 
   if [ -n "$serial" ]; then
-    result=$(echo "$result" | grep "; $serial")
+    result=$(echo "$result" | /usr/bin/grep "; $serial")
   fi
 
   if [ -n "$location" ]; then
-    result=$(echo "$result" | grep "[$location]")
+    result=$(echo "$result" | /usr/bin/grep "[$location]")
   fi
 
   if $isLast; then
-    echo "$result" | tail -1
+    echo "$result" | /usr/bin/tail -1
   elif $isFirst; then
-    echo "$result" | head -1
+    echo "$result" | /usr/bin/head -1
   elif [ -n "$head" ]; then
-    echo "$result" | head -"$head"
+    echo "$result" | /usr/bin/head -"$head"
   elif [ -n "$tail" ]; then
-    echo "$result" | tail -"$tail"
+    echo "$result" | /usr/bin/tail -"$tail"
   else
     echo "$result"
   fi
