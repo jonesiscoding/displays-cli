@@ -541,7 +541,7 @@ function adapter-model() {
 # @arg $2 int Monitor Index
 # @stdout string Value
 function monitor_value() {
-  $eJQ -r ".SPDisplaysDataType[$1].spdisplays_ndrvs[$2].\"${3}\"//empty" <<< "$spDisplaysDataType"
+  $eJQ -r ".SPDisplaysDataType[$1].spdisplays_ndrvs[$2].\"${3}\"//empty" <<< "$spDisplaysDataType" | /usr/bin/grep -v -E '^$'
 }
 
 # @description Gets the _name value from SPDisplaysDataType ->spdisplays_ndrvs for the given adapter & monitor index
