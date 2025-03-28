@@ -826,7 +826,7 @@ elif $isJamfEa || $isAttr; then
   fi
 
   result="${(j[|])ea}"
-  $isJamfEa && echo "<result>$result</result>"
+  $isJamfEa && echo "<result>$result</result>" && exit 0
   echo "$result"
 else
   count=$($eJQ '. | length' <<< "$json")
