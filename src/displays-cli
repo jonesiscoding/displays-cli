@@ -665,6 +665,13 @@ function display-attribute-year() {
   display_attribute "YearOfManufacture" "$@"
 }
 
+# @description Gets the NativeFormatHorizontalPixels x NativeFormatVerticalPixels values from ioreg -lw0 | grep "DisplayAttributes"
+# @arg $1 string Key
+# @stdout string Value
+function display-attribute-resolution() {
+  printf "%s x %s" "$(display_attribute NativeFormatHorizontalPixels "$@")" "$(display_attribute NativeFormatVerticalPixels "$@")"
+}
+
 ## endregion ################################### IOReg Functions
 
 ## region ###################################### Main Function
@@ -727,6 +734,7 @@ function get-json-data() {
         mModel=$(display-attribute-model "$ami")
         mSerial=$(display-attribute-serial "$ami" "$mModel")
         mYear=$(display-attribute-year "$ami" "$mModel")
+        mResolution=$(display-attribute-resolution "$ami" "$mModel")
         if [ -n "$mModel" ] || [ -n "$mSerial" ]; then
           log-entry "$mModel" "$mSerial"
           mJson=$(json-obj-add "{}" model "$mModel" serial "$mSerial" year "$mYear" resolution "$mResolution")
