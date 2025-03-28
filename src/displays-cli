@@ -652,37 +652,39 @@ function display-attribute-serial() {
 # @noargs
 # @stdout JSON string
 function get-json-data() {
-  local json ac ai mAdapter mc mi tmc
+  local json ac ai mAdapter amc ami tmc cmc
   local mModel mSerial mYear mPixels mResolution mRefresh mJson
   json="[]"
   tmc=$(get-total-monitor-count)
+  cmc=0
   ac=$(get-adapter-count)
-  if [ "$ac" -gt 0 ]; then
+  if [ "$ac" -gt "0" ]; then
     for ((ai=0; ai <= (ac-1); ai++)); do
       mAdapter=$(adapter-model "$ai" || echo "$ai")
-      mc=$(get-monitor-count "$ai")
-      if [ "$mc" -gt "0" ]; then
-        for ((mi=0; mi <= (mc-1); mi++)); do
-          mModel=$(monitor-name "$ai" "$mi" || echo "")
-          mSerial=$(monitor-serial "$ai" "$mi" || echo "")
-          mYear=$(monitor-year "$ai" "$mi" || echo "")
-          mPixels=$(monitor-pixels "$ai" "$mi" || echo "")
-          mResolution=$(monitor-resolution "$ai" "$mi" || echo "")
-          mRefresh=$(monitor-refresh "$ai" "$mi" || echo "")
+      amc=$(get-monitor-count "$ai")
+      if [ "$amc" -gt "0" ]; then
+        cmc=$((cmc+amc))
+        for ((ami=0; ami <= (amc-1); ami++)); do
+          mModel=$(monitor-name "$ai" "$ami" || echo "")
+          mSerial=$(monitor-serial "$ai" "$ami" || echo "")
+          mYear=$(monitor-year "$ai" "$ami" || echo "")
+          mPixels=$(monitor-pixels "$ai" "$ami" || echo "")
+          mResolution=$(monitor-resolution "$ai" "$ami" || echo "")
+          mRefresh=$(monitor-refresh "$ai" "$ami" || echo "")
           log-entry "$mModel" "$mSerial"
           mJson=$(json-obj-add "{}" adapter "$mAdapter" model "$mModel" serial "$mSerial" pixels "$mPixels" refresh "$mRefresh")
           mJson=$(json-obj-add "$mJson" resolution "$mResolution" year "$mYear")
-          if monitor-is-ambient-brightness "$ai" "$mi"; then
+          if monitor-is-ambient-brightness "$ai" "$ami"; then
             mJson=$(json-obj-add "$mJson" "is_ambient_brightness" "true")
           else
             mJson=$(json-obj-add "$mJson" "is_ambient_brightness" "false")
           fi
-          if monitor-is-main "$ai" "$mi"; then
+          if monitor-is-main "$ai" "$ami"; then
             mJson=$(json-obj-add "$mJson" "is_main" "true")
           else
             mJson=$(json-obj-add "$mJson" "is_main" "false")
           fi
-          if monitor-is-mirror "$ai" "$mi"; then
+          if monitor-is-mirror "$ai" "$ami"; then
             mJson=$(json-obj-add "$mJson" "is_mirror" "true")
           else
             mJson=$(json-obj-add "$mJson" "is_mirror" "false")
