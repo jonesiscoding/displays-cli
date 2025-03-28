@@ -632,7 +632,9 @@ function display_attribute() {
 
   key="$1"
   index="${2:-0}"
+  filter="${3}"
   value="$ioRegDisplayAttributes"
+  [ -n "$filter" ] && value=$(echo "$value" | /usr/bin/grep "$filter" )
   [ -n "$index" ] && value=$(echo "$value" | /usr/bin/sed -n "$((index+1))p" )
 
   echo "$value" | /usr/bin/grep -oE "\"${key}\"=\"[^\"]+\"" | /usr/bin/cut -d"=" -f2 | /usr/bin/tr -d '"'
