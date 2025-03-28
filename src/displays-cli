@@ -557,7 +557,7 @@ function monitor-name() {
 # @arg $2 int Monitor Index
 # @stdout string Serial Number
 function monitor-serial() {
-   monitor_value "$1" "$2" "_spdisplays_display-serial-number"
+   monitor_value "$1" "$2" "spdisplays_display-serial-number" || monitor_value "$1" "$2" "_spdisplays_display-serial-number"
 }
 
 # @description Gets the resolution part of the _spdisplays_resolution value from SPDisplaysDataType -> spdisplays_ndrvs.
@@ -565,7 +565,7 @@ function monitor-serial() {
 # @arg $2 int Monitor Index
 # @stdout string Resolution
 function monitor-resolution() {
-   monitor_value "$1" "$2" "_spdisplays_resolution" | /usr/bin/awk -F' @ ' '{ print $1 }'
+  echo "$(monitor_value "$1" "$2" "spdisplays_resolution" || monitor_value "$1" "$2" "_spdisplays_resolution")" | /usr/bin/awk -F' @ ' '{ print $1 }'
 }
 
 # @description Gets the refresh part of the _spdisplays_resolution value from SPDisplaysDataType -> spdisplays_ndrvs.
@@ -573,7 +573,7 @@ function monitor-resolution() {
 # @arg $2 int Monitor Index
 # @stdout string Refresh Rate
 function monitor-refresh() {
-  monitor_value "$1" "$2" "_spdisplays_resolution" | /usr/bin/awk -F' @ ' '{ print $2 }'
+  echo "$(monitor_value "$1" "$2" "spdisplays_resolution" || monitor_value "$1" "$2" "_spdisplays_resolution")" | /usr/bin/awk -F' @ ' '{ print $2 }'
 }
 
 # @description Gets the _spdisplays_pixels value from SPDisplaysDataType -> spdisplays_ndrvs.
