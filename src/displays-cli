@@ -513,6 +513,22 @@ function get-monitor-count() {
   $eJQ -r ".SPDisplaysDataType[$1].spdisplays_ndrvs | length" <<< "$spDisplaysDataType"
 }
 
+# @description Gets the total monitor count from SPDisplaysDataType for all adapters
+# @noargs
+# @stdout int Count
+function get-total-monitor-count() {
+  local adpC monC totC amI
+
+  totC=0
+  adpC=$(get-adapter-count)
+  for ((amI=0; amI <= (adpC-1); amI++)); do
+    monC=$(get-monitor-count "$amI")
+    totC=$((totC+monC))
+  done
+
+  echo "$totC" && return 0
+}
+
 # @description Gets the adapter model from the sppci_model key of SPDisplaysDataType for the given adapter
 # @arg $1 int Adapter Index
 # @stdout string Model
@@ -636,9 +652,10 @@ function display-attribute-serial() {
 # @noargs
 # @stdout JSON string
 function get-json-data() {
-  local json ac ai mAdapter mc mi
+  local json ac ai mAdapter mc mi tmc
   local mModel mSerial mYear mPixels mResolution mRefresh mJson
   json="[]"
+  tmc=$(get-total-monitor-count)
   ac=$(get-adapter-count)
   if [ "$ac" -gt 0 ]; then
     for ((ai=0; ai <= (ac-1); ai++)); do
@@ -680,7 +697,7 @@ function get-json-data() {
     done
   fi
 
-  if [ "$mc" -lt "1" ]; then
+  if [ "$tmc" -lt "1" ]; then
     mModel=$(display-attribute-model)
     mSerial=$(display-attribute-serial)
     if [ -n "$mModel" ] || [ -n "$mSerial" ]; then
