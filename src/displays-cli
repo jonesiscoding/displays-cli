@@ -176,11 +176,7 @@ function prefs-set-log-privacy() {
   for plist in $plists; do
     val=$(defaults read "$plist" privacy_level 2>/dev/null)
     if [ -n "$val" ]; then
-      if [ "$val" -eq "0" ]; then
-        logPrivacy="$val"
-      fi
-
-      return 0
+      logPrivacy="$val" && return 0
     fi
   done
 }
