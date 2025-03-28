@@ -658,6 +658,13 @@ function display-attribute-serial() {
   display_attribute "AlphanumericSerialNumber" "$@"
 }
 
+# @description Gets the AlphanumericSerialNumber value from ioreg -lw0 | grep "DisplayAttributes"
+# @arg $1 string Key
+# @stdout string Value
+function display-attribute-year() {
+  display_attribute "YearOfManufacture" "$@"
+}
+
 ## endregion ################################### IOReg Functions
 
 ## region ###################################### Main Function
@@ -719,6 +726,7 @@ function get-json-data() {
       for ((ami=0; ami <= (amc-1); ami++)); do
         mModel=$(display-attribute-model "$ami")
         mSerial=$(display-attribute-serial "$ami" "$mModel")
+        mYear=$(display-attribute-year "$ami" "$mModel")
         if [ -n "$mModel" ] || [ -n "$mSerial" ]; then
           log-entry "$mModel" "$mSerial"
           mJson=$(json-obj-add "{}" model "$mModel" serial "$mSerial" year "$mYear" resolution "$mResolution")
