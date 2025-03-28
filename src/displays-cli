@@ -697,7 +697,8 @@ function get-json-data() {
         cmc=$((cmc+amc))
         for ((ami=0; ami <= (amc-1); ami++)); do
           mModel=$(monitor-name "$ai" "$ami" || echo "")
-          mSerial=$(monitor-serial "$ai" "$ami" || echo "")
+          mSerial=$(display-attribute-serial "$ami" "$mModel" )
+          [ -z "$mSerial" ] && mSerial=$(monitor-serial "$ai" "$ami" || echo "")
           mYear=$(monitor-year "$ai" "$ami" || echo "")
           mPixels=$(monitor-pixels "$ai" "$ami" || echo "")
           mResolution=$(monitor-resolution "$ai" "$ami" || echo "")
