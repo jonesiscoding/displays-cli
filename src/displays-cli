@@ -42,6 +42,7 @@ fi
 
 # Other Variables
 spDisplaysDataType=$(system_profiler SPDisplaysDataType -json)
+ioRegDisplayAttributes=$(/usr/sbin/ioreg -lw0 | /usr/bin/grep -i "DisplayAttributes")
 parentCommand="$(ps -o comm= $PPID)"
 myArch=$(/usr/bin/arch)
 cacheDays=7
