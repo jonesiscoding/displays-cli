@@ -838,6 +838,7 @@ else
       if [[ "$($eJQ -r ".[$i].is_sleep" <<< "$json")" == "true" ]]; then
         echo "Display ${i} is Sleeping; Details Unavailable"
       else
+        output "Adapter" "$($eJQ -r ".[$i].adapter" <<< "$json")"
         output "Model" "$($eJQ -r ".[$i].model" <<< "$json")"
         output "Serial Number" "$($eJQ -r ".[$i].serial" <<< "$json")"
         output "Year" "$($eJQ -r ".[$i].year" <<< "$json")"
