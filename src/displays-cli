@@ -627,21 +627,35 @@ function monitor-is-mirror() {
 # @arg $1 string Key
 # @stdout string Value
 function display_attribute() {
-  /usr/sbin/ioreg -lw0 | /usr/bin/grep -i "DisplayAttributes" | /usr/bin/grep -oE "\"$1\"=\"[^\"]+\"" | /usr/bin/cut -d"=" -f2 | /usr/bin/tr -d '"'
+  local key value filter index
+
+  key="$1"
+  index="${2:-0}"
+  value="$ioRegDisplayAttributes"
+  [ -n "$index" ] && value=$(echo "$value" | /usr/bin/sed -n "$((index+1))p" )
+
+  echo "$value" | /usr/bin/grep -oE "\"${key}\"=\"[^\"]+\"" | /usr/bin/cut -d"=" -f2 | /usr/bin/tr -d '"'
+}
+
+# @description Gets the count of lines from ioreg -lw0 | grep "DisplayAttributes"
+# @arg $1 string Key
+# @stdout string Value
+function display-attribute-count() {
+  echo "$ioRegDisplayAttributes" | /usr/bin/wc -l | /usr/bin/xargs
 }
 
 # @description Gets the ProductName value from ioreg -lw0 | grep "DisplayAttributes"
 # @arg $1 string Key
 # @stdout string Value
 function display-attribute-model() {
-  display_attribute "ProductName"
+  display_attribute "ProductName" "$@"
 }
 
 # @description Gets the AlphanumericSerialNumber value from ioreg -lw0 | grep "DisplayAttributes"
 # @arg $1 string Key
 # @stdout string Value
 function display-attribute-serial() {
-  display_attribute "AlphanumericSerialNumber"
+  display_attribute "AlphanumericSerialNumber" "$@"
 }
 
 ## endregion ################################### IOReg Functions
@@ -700,12 +714,17 @@ function get-json-data() {
   fi
 
   if [ "$tmc" -lt "1" ]; then
-    mModel=$(display-attribute-model)
-    mSerial=$(display-attribute-serial)
-    if [ -n "$mModel" ] || [ -n "$mSerial" ]; then
-      log-entry "$mModel" "$mSerial"
-      mJson=$(json-obj-add "{}" model "$mModel" serial "$mSerial")
-      json=$(json-arr-add "$json" "$mJson")
+    amc=$(display-attribute-count)
+    if [ "$amc" -gt "0" ]; then
+      for ((ami=0; ami <= (amc-1); ami++)); do
+        mModel=$(display-attribute-model "$ami")
+        mSerial=$(display-attribute-serial "$ami" "$mModel")
+        if [ -n "$mModel" ] || [ -n "$mSerial" ]; then
+          log-entry "$mModel" "$mSerial"
+          mJson=$(json-obj-add "{}" model "$mModel" serial "$mSerial" year "$mYear" resolution "$mResolution")
+          json=$(json-arr-add "$json" "$mJson")
+        fi
+      done
     fi
   fi
 
