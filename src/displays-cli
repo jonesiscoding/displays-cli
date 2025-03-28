@@ -833,28 +833,31 @@ else
   count=$($eJQ '. | length' <<< "$json")
   if [ "$count" -eq "0" ]; then
     echo "No Displays Detected"
-  elif [[ "$($eJQ -r ".[$i].is_sleep" <<< "$json")" == "true" ]]; then
-    echo "Display is Sleeping; Details Unavailable"
   else
     for ((i=0; i <= (count-1); i++)); do
-      output "Model" "$($eJQ -r ".[$i].model" <<< "$json")"
-      output "Serial Number" "$($eJQ -r ".[$i].serial" <<< "$json")"
-      output "Year" "$($eJQ -r ".[$i].year" <<< "$json")"
-      output "Max Resolution" "$($eJQ -r ".[$i].pixels" <<< "$json")"
-      output "Resolution" "$($eJQ -r ".[$i].resolution" <<< "$json")"
-      output "Refresh" "$($eJQ -r ".[$i].refresh" <<< "$json")"
-      output "Is Main?" "$($eJQ -r ".[$i].is_main" <<< "$json")"
-      output "Is Mirror?" "$($eJQ -r ".[$i].is_mirror" <<< "$json")"
-      output "Is Ambient Brightness?" "$($eJQ -r ".[$i].is_ambient_brightness" <<< "$json")"
+      if [[ "$($eJQ -r ".[$i].is_sleep" <<< "$json")" == "true" ]]; then
+        echo "Display ${i} is Sleeping; Details Unavailable"
+      else
+        output "Model" "$($eJQ -r ".[$i].model" <<< "$json")"
+        output "Serial Number" "$($eJQ -r ".[$i].serial" <<< "$json")"
+        output "Year" "$($eJQ -r ".[$i].year" <<< "$json")"
+        output "Max Resolution" "$($eJQ -r ".[$i].pixels" <<< "$json")"
+        output "Resolution" "$($eJQ -r ".[$i].resolution" <<< "$json")"
+        output "Refresh" "$($eJQ -r ".[$i].refresh" <<< "$json")"
+        output "Is Main?" "$($eJQ -r ".[$i].is_main" <<< "$json")"
+        output "Is Mirror?" "$($eJQ -r ".[$i].is_mirror" <<< "$json")"
+        output "Is Ambient Brightness?" "$($eJQ -r ".[$i].is_ambient_brightness" <<< "$json")"
+      fi
       [ "$count" -gt "1" ] && echo "---------------------------------------------------"
     done
-    if $isWake; then
-      [ -n "$caffePid" ] && kill $caffePid
-      [ -z "$ttyskeepawake" ] && /usr/bin/pmset -a ttyskeepawake 0
-      /usr/bin/pmset displaysleepnow
-    fi
+  fi
+  if $isWake; then
+    # shellcheck disable=SC2086
+    [ -n "$caffePid" ] && kill $caffePid
+    [ -z "$ttyskeepawake" ] && /usr/bin/pmset -a ttyskeepawake 0
+    /usr/bin/pmset displaysleepnow
   fi
 fi
-exit 0;
+exit 0
 
 ## endregion ################################### Output Controller
