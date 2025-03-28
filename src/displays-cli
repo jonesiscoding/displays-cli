@@ -359,10 +359,9 @@ function location-match() {
 
   lc=$($eJQ '.locations | length' <<< "$locations")
   for ((li=0; li <= (lc-1); li++)); do
-    pattern=$($eJQ ".locations[$li].pattern" <<< "$locations")
+    pattern=$($eJQ -r ".locations[$li].pattern" <<< "$locations" | sed 's/\\\\/\\/g')
     if echo "$ip" | /usr/bin/grep -E -q "$pattern"; then
-
-      $eJQ ".locations[$li].name" <<< "$locations" && return 0
+      $eJQ -r ".locations[$li].name" <<< "$locations" && return 0
     fi
   done
 
