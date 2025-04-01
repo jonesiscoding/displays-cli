@@ -46,7 +46,7 @@ ioRegDisplayAttributes=$(/usr/sbin/ioreg -lw0 | /usr/bin/grep -i "DisplayAttribu
 parentCommand="$(ps -o comm= $PPID)"
 myArch=$(/usr/bin/arch)
 cacheDays=7
-myVersion=1.0
+myVersion="1.0.1"
 
 ## region ###################################### JSON Functions
 
@@ -223,11 +223,15 @@ function output-blue() {
   echo "${_out_blue}${1}${_out_end}"
 }
 
+function output-bundle() {
+  echo "$prefsBundlePrefix.$prefsBundleSuffix"
+}
+
 # @description Prints the script name and version
 # @noargs
 # @stdout string Script name & version
 function output-version() {
-  echo "displays v${myVersion}"
+  echo "displays-cli v${myVersion}"
 }
 
 # @description JSON Schema for the Applications & Custom Settings payload
@@ -329,8 +333,9 @@ function output-usage() {
   echo "  --tail <number>    Limit entries to the given number from the tail of the log. "
   echo "  --first            Only show the first entry for the given criteria."
   echo "  --last             Only show the last entry for the given criteria."
-  echo "  --version         Shows version & quits."
-  echo "  --help            Shows this help text & quits."
+  echo "  --version          Shows version & quits."
+  echo "  --bundleid         Shows bundle ID & quits."
+  echo "  --help             Shows this help text & quits."
   echo ""
 }
 
@@ -779,6 +784,7 @@ else
         --json)                     isJson=true                               ;;
         --ea )                      isJamfEa=true                             ;;
         --attr | --ca )             isAttr=true                               ;;
+        --bundleid )                output-bundleid;                          exit; ;; # show bundle ID and quit
         --schema )                  output-schema;                            exit; ;; # show schema and quit
         --help )                    output-usage;                             exit; ;; # show help and quit
         --version )                 output-version;                           exit; ;; # show version and quit

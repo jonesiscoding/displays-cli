@@ -91,7 +91,7 @@ should work in any situation where it can be configured via MDM
 ### Manual Configuration
 
 Using a tools such as PlistBuddy, you should be able to add the appropriate keys and values to a plist file.  To see the 
-expected name for your plist look at the output of `displays --schema`.  For system-wide settings, the plist file should
+expected name for your plist look at the output of `displays --bundleid`.  For system-wide settings, the plist file should
 be:
 
     /Library/Preferences/<org.yourname>.displays-cli.plist
