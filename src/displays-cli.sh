@@ -42,45 +42,19 @@ fi
 
 # Other Variables
 spDisplaysDataType=$(system_profiler SPDisplaysDataType -json)
-ioRegDisplayAttributes=$(/usr/sbin/ioreg -lw0 | /usr/bin/grep -i "DisplayAttributes")
 parentCommand="$(ps -o comm= $PPID)"
-myArch=$(/usr/bin/arch)
 cacheDays=7
-myVersion="1.0.2"
+myVersion="###version###"
 
 ## region ###################################### JSON Functions
 
-# @description Evaluates if the given string resembles a JSON object string
-# @exitcode 0 Yes
-# @exitcode 1 No
-function json-is-object() {
-  [[ "${1:0:1}" == "{" ]] && return 0
-  return 1
-}
-
-# @description Evaluates if the given string resembles a JSON array string
-# @exitcode 0 Yes
-# @exitcode 1 No
-function json-is-array() {
-  [[ "${1:0:1}" == "[" ]] && return 0
-  return 1
-}
-
-# @description Adds the given arguments to the given JSON object string. Multiple key/value pairs can be given.
-# @arg $1 string JSON Object String
-# @arg $2 string Key
-# @arg $3 string Value
 function json-obj-add() {
   local obj
 
   obj="$1"
   shift
-  while [[ "$1" != "" ]]; do
-    if json-is-object "$2" || json-is-array "$2"; then
-      obj=$($eJQ ". += {\"$1\": $2 }" <<< "$obj")
-    else
-      obj=$($eJQ ". += {\"$1\": \"$2\" }" <<< "$obj")
-    fi
+  while [ "$1" != "" ]; do
+    obj=$($eJQ ". += {\"$1\":\"$2\"}" <<< "$obj")
     shift
     [ -n "$1" ] && shift
   done
@@ -88,15 +62,8 @@ function json-obj-add() {
   echo "$obj"
 }
 
-# @description Adds the given value to the given JSON array string
-# @arg $1 string JSON array String
-# @arg $2 string Value
 function json-arr-add() {
-  if json-is-object "$2" || json-is-array "$2"; then
-    $eJQ ". += [ $2 ]" <<< "$1"
-  else
-    $eJQ ". += [ \"$2\" ]" <<< "$1"
-  fi
+  $eJQ ". += [ \"$2\" ]" <<< "$1"
 }
 
 ## endregion ################################### JSON Functions
@@ -176,7 +143,11 @@ function prefs-set-log-privacy() {
   for plist in $plists; do
     val=$(defaults read "$plist" privacy_level 2>/dev/null)
     if [ -n "$val" ]; then
-      logPrivacy="$val" && return 0
+      if [ "$val" -eq "0" ]; then
+        logPrivacy="$val"
+      fi
+
+      return 0
     fi
   done
 }
@@ -223,15 +194,11 @@ function output-blue() {
   echo "${_out_blue}${1}${_out_end}"
 }
 
-function output-bundle() {
-  echo "$prefsBundlePrefix.$prefsBundleSuffix"
-}
-
 # @description Prints the script name and version
 # @noargs
 # @stdout string Script name & version
 function output-version() {
-  echo "displays-cli v${myVersion}"
+  echo "displays v${myVersion}"
 }
 
 # @description JSON Schema for the Applications & Custom Settings payload
@@ -333,9 +300,8 @@ function output-usage() {
   echo "  --tail <number>    Limit entries to the given number from the tail of the log. "
   echo "  --first            Only show the first entry for the given criteria."
   echo "  --last             Only show the last entry for the given criteria."
-  echo "  --version          Shows version & quits."
-  echo "  --bundleid         Shows bundle ID & quits."
-  echo "  --help             Shows this help text & quits."
+  echo "  --version         Shows version & quits."
+  echo "  --help            Shows this help text & quits."
   echo ""
 }
 
@@ -364,9 +330,10 @@ function location-match() {
 
   lc=$($eJQ '.locations | length' <<< "$locations")
   for ((li=0; li <= (lc-1); li++)); do
-    pattern=$($eJQ -r ".locations[$li].pattern" <<< "$locations" | sed 's/\\\\/\\/g')
+    pattern=$($eJQ ".locations[$li].pattern" <<< "$locations")
     if echo "$ip" | /usr/bin/grep -E -q "$pattern"; then
-      $eJQ -r ".locations[$li].name" <<< "$locations" && return 0
+
+      $eJQ ".locations[$li].name" <<< "$locations" && return 0
     fi
   done
 
@@ -486,13 +453,13 @@ function log-diff() {
 # @exitcode 0 Yes
 # @exitcode 1 No
 is-display-sleep() {
-  isWrangle=true
-  [[ "$myArch" == "amd64" ]] && isWrangle=false
-  [[ "$(get-adapter-count)" -gt "1" ]] && isWrangle=false
-  if $isWrangle; then
-    /usr/bin/pmset -g powerstate IODisplayWrangler | /usr/bin/tail -1 | /usr/bin/grep -v "failure" | /usr/bin/cut -c29 | /usr/bin/grep -qE '^[0-3]$'
+  local value
+
+  value=$(/usr/bin/pmset -g powerstate IODisplayWrangler | /usr/bin/tail -1 | /usr/bin/grep -v "failure" | /usr/bin/cut -c29 | /usr/bin/grep -E '[0-9]')
+  if [ -n "$value" ] && [ "$value" -lt "4" ]; then
+    return 0
   else
-    /usr/bin/pmset -g log | /usr/bin/grep -e " Sleep  " -e " Wake  " | /usr/bin/tail -n1 | /usr/bin/awk '{ print $4 }' | /usr/bin/grep -q "Sleep"
+    return 1
   fi
 }
 
@@ -514,22 +481,6 @@ function get-monitor-count() {
   $eJQ -r ".SPDisplaysDataType[$1].spdisplays_ndrvs | length" <<< "$spDisplaysDataType"
 }
 
-# @description Gets the total monitor count from SPDisplaysDataType for all adapters
-# @noargs
-# @stdout int Count
-function get-total-monitor-count() {
-  local adpC monC totC amI
-
-  totC=0
-  adpC=$(get-adapter-count)
-  for ((amI=0; amI <= (adpC-1); amI++)); do
-    monC=$(get-monitor-count "$amI")
-    totC=$((totC+monC))
-  done
-
-  echo "$totC" && return 0
-}
-
 # @description Gets the adapter model from the sppci_model key of SPDisplaysDataType for the given adapter
 # @arg $1 int Adapter Index
 # @stdout string Model
@@ -542,7 +493,7 @@ function adapter-model() {
 # @arg $2 int Monitor Index
 # @stdout string Value
 function monitor_value() {
-  $eJQ -r ".SPDisplaysDataType[$1].spdisplays_ndrvs[$2].\"${3}\"//empty" <<< "$spDisplaysDataType" | /usr/bin/grep -v -E '^$'
+  $eJQ -r ".SPDisplaysDataType[$1].spdisplays_ndrvs[$2].\"${3}\"//empty" <<< "$spDisplaysDataType"
 }
 
 # @description Gets the _name value from SPDisplaysDataType ->spdisplays_ndrvs for the given adapter & monitor index
@@ -558,7 +509,7 @@ function monitor-name() {
 # @arg $2 int Monitor Index
 # @stdout string Serial Number
 function monitor-serial() {
-   monitor_value "$1" "$2" "spdisplays_display-serial-number" || monitor_value "$1" "$2" "_spdisplays_display-serial-number"
+   monitor_value "$1" "$2" "_spdisplays_display-serial-number"
 }
 
 # @description Gets the resolution part of the _spdisplays_resolution value from SPDisplaysDataType -> spdisplays_ndrvs.
@@ -566,7 +517,7 @@ function monitor-serial() {
 # @arg $2 int Monitor Index
 # @stdout string Resolution
 function monitor-resolution() {
-  echo "$(monitor_value "$1" "$2" "spdisplays_resolution" || monitor_value "$1" "$2" "_spdisplays_resolution")" | /usr/bin/awk -F' @ ' '{ print $1 }'
+   monitor_value "$1" "$2" "_spdisplays_resolution" | /usr/bin/awk -F' @ ' '{ print $1 }'
 }
 
 # @description Gets the refresh part of the _spdisplays_resolution value from SPDisplaysDataType -> spdisplays_ndrvs.
@@ -574,7 +525,7 @@ function monitor-resolution() {
 # @arg $2 int Monitor Index
 # @stdout string Refresh Rate
 function monitor-refresh() {
-  echo "$(monitor_value "$1" "$2" "spdisplays_resolution" || monitor_value "$1" "$2" "_spdisplays_resolution")" | /usr/bin/awk -F' @ ' '{ print $2 }'
+  monitor_value "$1" "$2" "_spdisplays_resolution" | /usr/bin/awk -F' @ ' '{ print $2 }'
 }
 
 # @description Gets the _spdisplays_pixels value from SPDisplaysDataType -> spdisplays_ndrvs.
@@ -628,51 +579,21 @@ function monitor-is-mirror() {
 # @arg $1 string Key
 # @stdout string Value
 function display_attribute() {
-  local key value filter index
-
-  key="$1"
-  index="${2:-0}"
-  filter="${3}"
-  value="$ioRegDisplayAttributes"
-  [ -n "$filter" ] && value=$(echo "$value" | /usr/bin/grep "$filter" )
-  [ -n "$index" ] && value=$(echo "$value" | /usr/bin/sed -n "$((index+1))p" )
-
-  echo "$value" | /usr/bin/grep -oE "\"${key}\"=\"[^\"]+\"" | /usr/bin/cut -d"=" -f2 | /usr/bin/tr -d '"'
-}
-
-# @description Gets the count of lines from ioreg -lw0 | grep "DisplayAttributes"
-# @arg $1 string Key
-# @stdout string Value
-function display-attribute-count() {
-  echo "$ioRegDisplayAttributes" | /usr/bin/wc -l | /usr/bin/xargs
+  /usr/sbin/ioreg -lw0 | /usr/bin/grep -i "DisplayAttributes" | /usr/bin/grep -oE "\"$1\"=\"[^\"]+\"" | /usr/bin/cut -d"=" -f2 | /usr/bin/tr -d '"'
 }
 
 # @description Gets the ProductName value from ioreg -lw0 | grep "DisplayAttributes"
 # @arg $1 string Key
 # @stdout string Value
 function display-attribute-model() {
-  display_attribute "ProductName" "$@"
+  display_attribute "ProductName"
 }
 
 # @description Gets the AlphanumericSerialNumber value from ioreg -lw0 | grep "DisplayAttributes"
 # @arg $1 string Key
 # @stdout string Value
 function display-attribute-serial() {
-  display_attribute "AlphanumericSerialNumber" "$@"
-}
-
-# @description Gets the AlphanumericSerialNumber value from ioreg -lw0 | grep "DisplayAttributes"
-# @arg $1 string Key
-# @stdout string Value
-function display-attribute-year() {
-  display_attribute "YearOfManufacture" "$@"
-}
-
-# @description Gets the NativeFormatHorizontalPixels x NativeFormatVerticalPixels values from ioreg -lw0 | grep "DisplayAttributes"
-# @arg $1 string Key
-# @stdout string Value
-function display-attribute-resolution() {
-  printf "%s x %s" "$(display_attribute NativeFormatHorizontalPixels "$@")" "$(display_attribute NativeFormatVerticalPixels "$@")"
+  display_attribute "AlphanumericSerialNumber"
 }
 
 ## endregion ################################### IOReg Functions
@@ -683,40 +604,36 @@ function display-attribute-resolution() {
 # @noargs
 # @stdout JSON string
 function get-json-data() {
-  local json ac ai mAdapter amc ami tmc cmc
+  local json ac ai mAdapter mc mi
   local mModel mSerial mYear mPixels mResolution mRefresh mJson
   json="[]"
-  tmc=$(get-total-monitor-count)
-  cmc=0
   ac=$(get-adapter-count)
-  if [ "$ac" -gt "0" ]; then
+  if [ "$ac" -gt 0 ]; then
     for ((ai=0; ai <= (ac-1); ai++)); do
       mAdapter=$(adapter-model "$ai" || echo "$ai")
-      amc=$(get-monitor-count "$ai")
-      if [ "$amc" -gt "0" ]; then
-        cmc=$((cmc+amc))
-        for ((ami=0; ami <= (amc-1); ami++)); do
-          mModel=$(monitor-name "$ai" "$ami" || echo "")
-          mSerial=$(display-attribute-serial "$ami" "$mModel" )
-          [ -z "$mSerial" ] && mSerial=$(monitor-serial "$ai" "$ami" || echo "")
-          mYear=$(monitor-year "$ai" "$ami" || echo "")
-          mPixels=$(monitor-pixels "$ai" "$ami" || echo "")
-          mResolution=$(monitor-resolution "$ai" "$ami" || echo "")
-          mRefresh=$(monitor-refresh "$ai" "$ami" || echo "")
+      mc=$(get-monitor-count "$ai")
+      if [ "$mc" -gt "0" ]; then
+        for ((mi=0; mi <= (mc-1); mi++)); do
+          mModel=$(monitor-name "$ai" "$mi" || echo "")
+          mSerial=$(monitor-serial "$ai" "$mi" || echo "")
+          mYear=$(monitor-year "$ai" "$mi" || echo "")
+          mPixels=$(monitor-pixels "$ai" "$mi" || echo "")
+          mResolution=$(monitor-resolution "$ai" "$mi" || echo "")
+          mRefresh=$(monitor-refresh "$ai" "$mi" || echo "")
           log-entry "$mModel" "$mSerial"
           mJson=$(json-obj-add "{}" adapter "$mAdapter" model "$mModel" serial "$mSerial" pixels "$mPixels" refresh "$mRefresh")
           mJson=$(json-obj-add "$mJson" resolution "$mResolution" year "$mYear")
-          if monitor-is-ambient-brightness "$ai" "$ami"; then
+          if monitor-is-ambient-brightness "$ai" "$mi"; then
             mJson=$(json-obj-add "$mJson" "is_ambient_brightness" "true")
           else
             mJson=$(json-obj-add "$mJson" "is_ambient_brightness" "false")
           fi
-          if monitor-is-main "$ai" "$ami"; then
+          if monitor-is-main "$ai" "$mi"; then
             mJson=$(json-obj-add "$mJson" "is_main" "true")
           else
             mJson=$(json-obj-add "$mJson" "is_main" "false")
           fi
-          if monitor-is-mirror "$ai" "$ami"; then
+          if monitor-is-mirror "$ai" "$mi"; then
             mJson=$(json-obj-add "$mJson" "is_mirror" "true")
           else
             mJson=$(json-obj-add "$mJson" "is_mirror" "false")
@@ -731,20 +648,13 @@ function get-json-data() {
     done
   fi
 
-  if [ "$tmc" -lt "1" ]; then
-    amc=$(display-attribute-count)
-    if [ "$amc" -gt "0" ]; then
-      for ((ami=0; ami <= (amc-1); ami++)); do
-        mModel=$(display-attribute-model "$ami")
-        mSerial=$(display-attribute-serial "$ami" "$mModel")
-        mYear=$(display-attribute-year "$ami" "$mModel")
-        mResolution=$(display-attribute-resolution "$ami" "$mModel")
-        if [ -n "$mModel" ] || [ -n "$mSerial" ]; then
-          log-entry "$mModel" "$mSerial"
-          mJson=$(json-obj-add "{}" model "$mModel" serial "$mSerial" year "$mYear" resolution "$mResolution")
-          json=$(json-arr-add "$json" "$mJson")
-        fi
-      done
+  if [ "$mc" -lt "1" ]; then
+    mModel=$(display-attribute-model)
+    mSerial=$(display-attribute-serial)
+    if [ -n "$mModel" ] || [ -n "$mSerial" ]; then
+      log-entry "$mModel" "$mSerial"
+      mJson=$(json-obj-add "{}" model "$mModel" serial "$mSerial")
+      json=$(json-arr-add "$json" "$mJson")
     fi
   fi
 
@@ -784,7 +694,6 @@ else
         --json)                     isJson=true                               ;;
         --ea )                      isJamfEa=true                             ;;
         --attr | --ca )             isAttr=true                               ;;
-        --bundleid )                output-bundleid;                          exit; ;; # show bundle ID and quit
         --schema )                  output-schema;                            exit; ;; # show schema and quit
         --help )                    output-usage;                             exit; ;; # show help and quit
         --version )                 output-version;                           exit; ;; # show version and quit
@@ -886,38 +795,34 @@ elif $isJamfEa || $isAttr; then
   fi
 
   result="${(j[|])ea}"
-  $isJamfEa && echo "<result>$result</result>" && exit 0
+  $isJamfEa && echo "<result>$result</result>"
   echo "$result"
 else
   count=$($eJQ '. | length' <<< "$json")
   if [ "$count" -eq "0" ]; then
     echo "No Displays Detected"
+  elif [[ "$($eJQ -r ".[$i].is_sleep" <<< "$json")" == "true" ]]; then
+    echo "Display is Sleeping; Details Unavailable"
   else
     for ((i=0; i <= (count-1); i++)); do
-      if [[ "$($eJQ -r ".[$i].is_sleep" <<< "$json")" == "true" ]]; then
-        echo "Display ${i} is Sleeping; Details Unavailable"
-      else
-        output "Adapter" "$($eJQ -r ".[$i].adapter" <<< "$json")"
-        output "Model" "$($eJQ -r ".[$i].model" <<< "$json")"
-        output "Serial Number" "$($eJQ -r ".[$i].serial" <<< "$json")"
-        output "Year" "$($eJQ -r ".[$i].year" <<< "$json")"
-        output "Max Resolution" "$($eJQ -r ".[$i].pixels" <<< "$json")"
-        output "Resolution" "$($eJQ -r ".[$i].resolution" <<< "$json")"
-        output "Refresh" "$($eJQ -r ".[$i].refresh" <<< "$json")"
-        output "Is Main?" "$($eJQ -r ".[$i].is_main" <<< "$json")"
-        output "Is Mirror?" "$($eJQ -r ".[$i].is_mirror" <<< "$json")"
-        output "Is Ambient Brightness?" "$($eJQ -r ".[$i].is_ambient_brightness" <<< "$json")"
-      fi
+      output "Model" "$($eJQ -r ".[$i].model" <<< "$json")"
+      output "Serial Number" "$($eJQ -r ".[$i].serial" <<< "$json")"
+      output "Year" "$($eJQ -r ".[$i].year" <<< "$json")"
+      output "Max Resolution" "$($eJQ -r ".[$i].pixels" <<< "$json")"
+      output "Resolution" "$($eJQ -r ".[$i].resolution" <<< "$json")"
+      output "Refresh" "$($eJQ -r ".[$i].refresh" <<< "$json")"
+      output "Is Main?" "$($eJQ -r ".[$i].is_main" <<< "$json")"
+      output "Is Mirror?" "$($eJQ -r ".[$i].is_mirror" <<< "$json")"
+      output "Is Ambient Brightness?" "$($eJQ -r ".[$i].is_ambient_brightness" <<< "$json")"
       [ "$count" -gt "1" ] && echo "---------------------------------------------------"
     done
-  fi
-  if $isWake; then
-    # shellcheck disable=SC2086
-    [ -n "$caffePid" ] && kill $caffePid
-    [ -z "$ttyskeepawake" ] && /usr/bin/pmset -a ttyskeepawake 0
-    /usr/bin/pmset displaysleepnow
+    if $isWake; then
+      [ -n "$caffePid" ] && kill $caffePid
+      [ -z "$ttyskeepawake" ] && /usr/bin/pmset -a ttyskeepawake 0
+      /usr/bin/pmset displaysleepnow
+    fi
   fi
 fi
-exit 0
+exit 0;
 
 ## endregion ################################### Output Controller
