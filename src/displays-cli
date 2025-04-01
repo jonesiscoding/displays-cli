@@ -46,7 +46,7 @@ ioRegDisplayAttributes=$(/usr/sbin/ioreg -lw0 | /usr/bin/grep -i "DisplayAttribu
 parentCommand="$(ps -o comm= $PPID)"
 myArch=$(/usr/bin/arch)
 cacheDays=7
-myVersion="1.0.1"
+myVersion="1.0.2"
 
 ## region ###################################### JSON Functions
 
