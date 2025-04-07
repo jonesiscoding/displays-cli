@@ -849,6 +849,7 @@ if $isSearch; then
     echo "$result"
   fi
 fi
+exit 0
 
 ## endregion ################################### Log Search Controller
 
